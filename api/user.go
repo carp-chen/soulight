@@ -16,7 +16,7 @@ func Hello(c *gin.Context) {
 	c.JSON(200, gin.H{"message": "Hello!"})
 }
 
-//用户注册接口
+//用户注册(登录)接口
 func UserRegister(c *gin.Context) {
 	var user model.User
 	var msg string
@@ -87,8 +87,7 @@ func UserRegister(c *gin.Context) {
 }
 
 //用户修改信息接口
-func EditUser(c *gin.Context) {
-	var user model.User
+func UserEdit(c *gin.Context) {
 	var edit_user model.EditUser
 	var code int
 	//1.参数绑定
@@ -101,7 +100,7 @@ func EditUser(c *gin.Context) {
 		return
 	}
 	//2.判断要修改的用户名是否存在
-	u, _ := model.GetOneUser(model.Db, map[string]interface{}{"username": user.Username})
+	u, _ := model.GetOneUser(model.Db, map[string]interface{}{"username": edit_user.Username})
 	if u != nil && u.ID != id {
 		code = errmsg.ERROR_USERNAME_USED
 		c.JSON(

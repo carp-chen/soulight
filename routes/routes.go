@@ -15,10 +15,12 @@ func NewRouter() *gin.Engine {
 	{
 		// 用户操作
 		v1.POST("user/register", api.UserRegister)
+		v1.POST("adviser/register", api.AdviserRegister)
 		authed := v1.Group("/") //需要登陆保护
 		authed.Use(middleware.JwtToken())
 		{
-			authed.POST("user/edit", api.EditUser)
+			authed.POST("user/edit", api.UserEdit)
+			authed.POST("adviser/edit", api.AdviserEdit)
 		}
 	}
 	return r

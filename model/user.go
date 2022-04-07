@@ -16,7 +16,7 @@ import (
 // User is a mapping object for user table in mysql
 type User struct {
 	ID        int       `json:"id"`
-	Username  string    `json:"username" validate:"required,min=4,max=12" label:"用户名"`
+	Username  string    `json:"username" validate:"required,min=4,max=20" label:"用户名"`
 	Password  string    `json:"password" validate:"required,min=6,max=30" label:"密码"`
 	Birth     time.Time `json:"birth"`
 	Gender    int       `json:"gender"`
@@ -27,7 +27,7 @@ type User struct {
 }
 
 type EditUser struct {
-	Username string `json:"username" `
+	Username string `json:"username" binding:"required"`
 	Birth    int64  `json:"birth"`
 	Gender   int    `json:"gender"`
 	Bio      string `json:"bio"`
