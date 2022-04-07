@@ -33,6 +33,7 @@ func Init() {
 func LoadServer(file *ini.File) {
 	AppMode = file.Section("server").Key("AppMode").String()
 	HttpPort = file.Section("server").Key("HttpPort").String()
+	JwtKey = file.Section("server").Key("JwtKey").String()
 }
 
 func LoadMysqlData(file *ini.File) {

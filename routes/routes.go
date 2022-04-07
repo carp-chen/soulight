@@ -14,6 +14,7 @@ func NewRouter() *gin.Engine {
 	{
 		// 用户操作
 		v1.POST("user/register", api.UserRegister)
+		v1.POST("user/edit", api.EditUser)
 	}
 	return r
 }

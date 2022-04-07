@@ -5,24 +5,31 @@ import (
 	"fmt"
 	"net/url"
 	"strconv"
+	"time"
 
 	"github.com/didi/gendry/manager"
+	"github.com/didi/gendry/scanner"
 	_ "github.com/go-sql-driver/mysql"
 )
 
-var db *sql.DB
+var Db *sql.DB
 var err error
 
 func Database(DbHost string, DbPort string, DbUser string, DbPassWord string, DbName string) {
 	dbport, _ := strconv.Atoi(DbPort)
-	db, err = manager.New(DbName, DbUser, DbPassWord, DbHost).Set(
+	Db, err = manager.New(DbName, DbUser, DbPassWord, DbHost).Set(
 		manager.SetCharset("utf8mb4"),
 		manager.SetParseTime(true),
-		manager.SetLoc(url.QueryEscape("Asia/Shanghai"))).Port(dbport).Open(true)
+		manager.SetLoc(url.QueryEscape("Asia/Shanghai")),
+		manager.SetAllowCleartextPasswords(true),
+		manager.SetInterpolateParams(true),
+		manager.SetTimeout(1*time.Second),
+		manager.SetReadTimeout(1*time.Second)).Port(dbport).Open(true)
+	scanner.SetTagName("json")
 	if err != nil {
 		panic(err)
 	}
-	err = db.Ping()
+	err = Db.Ping()
 	if err != nil {
 		panic(err)
 	} else {
