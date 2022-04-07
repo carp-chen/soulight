@@ -15,13 +15,23 @@ import (
 
 // User is a mapping object for user table in mysql
 type User struct {
-	ID       int       `json:"id"`
-	Username string    `json:"username" validate:"required,min=4,max=12" label:"用户名"`
-	Password string    `json:"password" validate:"required,min=6,max=30" label:"密码"`
-	Birth    time.Time `json:"birth"`
-	Gender   int       `json:"gender"`
-	Bio      string    `json:"bio"`
-	About    string    `json:"about"`
+	ID        int       `json:"id"`
+	Username  string    `json:"username" validate:"required,min=4,max=12" label:"用户名"`
+	Password  string    `json:"password" validate:"required,min=6,max=30" label:"密码"`
+	Birth     time.Time `json:"birth"`
+	Gender    int       `json:"gender"`
+	Bio       string    `json:"bio"`
+	About     string    `json:"about"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"update_at"`
+}
+
+type EditUser struct {
+	Username string `json:"username" `
+	Birth    int64  `json:"birth"`
+	Gender   int    `json:"gender"`
+	Bio      string `json:"bio"`
+	About    string `json:"about"`
 }
 
 //GetOne gets one record from table user by condition "where"

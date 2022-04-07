@@ -5,13 +5,9 @@ import (
 	"net/http"
 	"soulight/model"
 	"soulight/serialization"
-	"soulight/utils/bcrypt"
+	"soulight/utils"
 	"soulight/utils/errmsg"
-	"soulight/utils/jwt"
-	"soulight/utils/validator"
-	"strconv"
-
-	"github.com/fatih/structs"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -20,6 +16,7 @@ func Hello(c *gin.Context) {
 	c.JSON(200, gin.H{"message": "Hello!"})
 }
 
+//用户注册接口
 func UserRegister(c *gin.Context) {
 	var user model.User
 	var msg string
@@ -27,14 +24,14 @@ func UserRegister(c *gin.Context) {
 	var code int
 	//1.绑定参数
 	if err := c.ShouldBind(&user); err != nil {
-		code = 400
+		code = errmsg.INVALID_PARAMS
 		c.JSON(
 			http.StatusOK, serialization.NewResponse(code),
 		)
 		return
 	}
 	//2.校验字段
-	msg, validCode = validator.Validate(&user)
+	msg, validCode = utils.Validate(&user)
 	if validCode != errmsg.SUCCSE {
 		c.JSON(
 			http.StatusOK, gin.H{
@@ -48,24 +45,24 @@ func UserRegister(c *gin.Context) {
 	u, _ := model.GetOneUser(model.Db, map[string]interface{}{"username": user.Username})
 	if u != nil {
 		//如果密码验证正确,则返回token
-		if bcrypt.CheckPassword(user.Password, u.Password) {
+		if utils.CheckPassword(user.Password, u.Password) {
 			//分发token
-			token, err := jwt.GenerateToken(uint(u.ID), u.Username)
+			token, err := utils.GenerateToken(u.ID, u.Username)
 			if err != nil {
 				fmt.Println(err)
-				code = 1009
+				code = errmsg.ERROR_GENARATE_TOKEN
 				c.JSON(
 					http.StatusOK, serialization.NewResponse(code),
 				)
 				return
 			}
-			code = 200
+			code = errmsg.SUCCSE
 			c.JSON(
 				http.StatusOK, serialization.NewResponseWithToken(code, u, token),
 			)
 
 		} else {
-			code = 1002
+			code = errmsg.ERROR_PASSWORD_WRONG
 			c.JSON(
 				http.StatusOK, serialization.NewResponse(code),
 			)
@@ -73,66 +70,64 @@ func UserRegister(c *gin.Context) {
 		return
 	}
 	//4.加密密码并写入数据库
-	passwordDigest, _ := bcrypt.SetPassword(user.Password)
+	passwordDigest, _ := utils.SetPassword(user.Password)
 	//	if _, err := model.Db.Exec("insert into user(username,password) values(?,?)", user.Username, passwordDigest)
 	if _, err := model.InsertUser(model.Db, []map[string]interface{}{{"username": user.Username, "password": passwordDigest}}); err != nil {
-		code = 3000
+		code = errmsg.ERROR_DATABASE
 		c.JSON(
 			http.StatusOK, serialization.NewResponse(code),
 		)
 	} else {
 		user, _ := model.GetOneUser(model.Db, map[string]interface{}{"username": user.Username})
-		code = 200
+		code = errmsg.SUCCSE
 		c.JSON(
 			http.StatusOK, serialization.NewResponseWithData(code, user),
 		)
 	}
 }
 
+//用户修改信息接口
 func EditUser(c *gin.Context) {
 	var user model.User
+	var edit_user model.EditUser
 	var code int
 	//1.参数绑定
-	id, _ := strconv.Atoi(c.Param("id"))
-	if err := c.ShouldBind(&user); err != nil {
-		code = 500
+	id := c.GetInt("id")
+	if err := c.ShouldBind(&edit_user); err != nil {
+		code = errmsg.INVALID_PARAMS
 		c.JSON(
-			http.StatusOK, gin.H{
-				"status":  code,
-				"message": errmsg.GetErrMsg(code),
-			},
+			http.StatusOK, serialization.NewResponse(code),
 		)
 		return
 	}
 	//2.判断要修改的用户名是否存在
 	u, _ := model.GetOneUser(model.Db, map[string]interface{}{"username": user.Username})
 	if u != nil && u.ID != id {
-		code = 1001
+		code = errmsg.ERROR_USERNAME_USED
 		c.JSON(
-			http.StatusOK, gin.H{
-				"status":  code,
-				"message": errmsg.GetErrMsg(code),
-			},
+			http.StatusOK, serialization.NewResponse(code),
 		)
 		return
 	}
 	//3.更新数据库
-	user_map := structs.Map(&user)
-	if result, _ := model.UpdateUser(model.Db, map[string]interface{}{"id": id}, user_map); result != 0 {
-		code = 500
+	update_map := map[string]interface{}{
+		"username": edit_user.Username,
+		"birth":    time.Unix(edit_user.Birth, 0),
+		"gender":   edit_user.Gender,
+		"bio":      edit_user.Bio,
+		"about":    edit_user.About,
+	}
+	if _, err := model.UpdateUser(model.Db, map[string]interface{}{"id": id}, update_map); err != nil {
+		fmt.Println(err)
+		code = errmsg.ERROR_DATABASE
 		c.JSON(
-			http.StatusOK, gin.H{
-				"status":  code,
-				"message": errmsg.GetErrMsg(code),
-			},
+			http.StatusOK, serialization.NewResponse(code),
 		)
 	} else {
-		code = 200
+		user, _ := model.GetOneUser(model.Db, map[string]interface{}{"id": id})
+		code = errmsg.SUCCSE
 		c.JSON(
-			http.StatusOK, gin.H{
-				"status":  code,
-				"message": errmsg.GetErrMsg(code),
-			},
+			http.StatusOK, serialization.NewResponseWithData(code, user),
 		)
 	}
 
