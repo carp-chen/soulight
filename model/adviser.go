@@ -18,6 +18,7 @@ type Adviser struct {
 	ID          int       `json:"id"`
 	AdviserName string    `json:"adviser_name" validate:"required,min=4,max=20" label:"用户名"`
 	Password    string    `json:"password" validate:"required,min=6,max=30" label:"密码"`
+	Img         string    `json:"img"`
 	Bio         string    `json:"bio"`
 	WorkExp     string    `json:"work_exp"`
 	About       string    `json:"about"`
@@ -34,9 +35,31 @@ type Adviser struct {
 
 type EditAdviser struct {
 	AdviserName string `json:"adviser_name" binding:"required"`
+	Img         string `json:"img"`
 	Bio         string `json:"bio"`
 	WorkExp     string `json:"work_exp" binding:"required"`
 	About       string `json:"about"`
+}
+type AdviserList struct {
+	AdviserName string `json:"adviser_name"`
+	Img         string `json:"img"`
+	Bio         string `json:"bio"`
+}
+type AdviserInfo struct {
+	AdviserName string  `json:"adviser_name"`
+	Img         string  `json:"img"`
+	Bio         string  `json:"bio"`
+	Rate        float64 `json:"rate"`
+	Coins       int     `json:"coins"`
+	Readings    int     `json:"readings"`
+	Response    float64 `json:"response"`
+	Ontime      float64 `json:"ontime"`
+	Accuracy    float64 `json:"accuracy"`
+	Status      int8    `json:"status"`
+}
+
+type AdviserStatus struct {
+	Status int8 `json:"status"`
 }
 
 //GetOne gets one record from table adviser by condition "where"

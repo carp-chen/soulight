@@ -18,6 +18,7 @@ type User struct {
 	ID        int       `json:"id"`
 	Username  string    `json:"username" validate:"required,min=4,max=20" label:"用户名"`
 	Password  string    `json:"password" validate:"required,min=6,max=30" label:"密码"`
+	Img       string    `json:"img"`
 	Birth     time.Time `json:"birth"`
 	Gender    int       `json:"gender"`
 	Bio       string    `json:"bio"`
@@ -28,6 +29,7 @@ type User struct {
 
 type EditUser struct {
 	Username string `json:"username" binding:"required"`
+	Img      string `json:"img"`
 	Birth    int64  `json:"birth"`
 	Gender   int    `json:"gender"`
 	Bio      string `json:"bio"`

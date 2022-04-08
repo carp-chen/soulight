@@ -8,6 +8,8 @@ import (
 	"soulight/utils"
 	"soulight/utils/errmsg"
 
+	"github.com/didi/gendry/builder"
+	"github.com/didi/gendry/scanner"
 	"github.com/gin-gonic/gin"
 )
 
@@ -36,7 +38,7 @@ func AdviserRegister(c *gin.Context) {
 		)
 		return
 	}
-	//3.用户名如已存在,即为登陆
+	//3.用户名如已存在,即为登录
 	ad, _ := model.GetOneAdviser(model.Db, map[string]interface{}{"adviser_name": adviser.AdviserName})
 	if ad != nil {
 		//如果密码验证正确,则返回token
@@ -49,13 +51,12 @@ func AdviserRegister(c *gin.Context) {
 				c.JSON(
 					http.StatusOK, serialization.NewResponse(code),
 				)
-				return
+			} else {
+				code = errmsg.SUCCSE
+				c.JSON(
+					http.StatusOK, serialization.NewResponseWithToken(code, ad, token),
+				)
 			}
-			code = errmsg.SUCCSE
-			c.JSON(
-				http.StatusOK, serialization.NewResponseWithToken(code, ad, token),
-			)
-
 		} else {
 			code = errmsg.ERROR_PASSWORD_WRONG
 			c.JSON(
@@ -105,6 +106,7 @@ func AdviserEdit(c *gin.Context) {
 	//3.更新数据库
 	update_map := map[string]interface{}{
 		"adviser_name": edit_adviser.AdviserName,
+		"img":          edit_adviser.Img,
 		"bio":          edit_adviser.Bio,
 		"work_exp":     edit_adviser.WorkExp,
 		"about":        edit_adviser.About,
@@ -126,5 +128,126 @@ func AdviserEdit(c *gin.Context) {
 
 //顾问主页接口
 func AdviserInfo(c *gin.Context) {
+	var code int
+	//1.参数绑定
+	id := c.GetInt("id")
+	//2.查询数据库
+	where := map[string]interface{}{"id": id}
+	columns := []string{"adviser_name", "img", "bio", "rate", "coins", "readings", "response", "ontime", "accuracy", "status"}
+	cond, vals, err := builder.BuildSelect("adviser", where, columns)
+	if nil != err {
+		code = errmsg.ERROR
+		c.JSON(
+			http.StatusOK, serialization.NewResponse(code),
+		)
+		return
+	}
+	row, err := model.Db.Query(cond, vals...)
+	if nil != err || nil == row {
+		fmt.Println(err)
+		code = errmsg.ERROR_DATABASE
+		c.JSON(
+			http.StatusOK, serialization.NewResponse(code),
+		)
+		return
+	}
+	defer row.Close()
+	var res *model.AdviserInfo
+	if err = scanner.Scan(row, &res); err != nil {
+		code = errmsg.ERROR
+		c.JSON(
+			http.StatusOK, serialization.NewResponse(code),
+		)
+		return
+	}
+	code = errmsg.SUCCSE
+	c.JSON(
+		http.StatusOK, serialization.NewResponseWithData(code, res),
+	)
+}
 
+//顾问接单状态更新接口
+func AdviserStatus(c *gin.Context) {
+	var adviser_status model.Adviser
+	var code int
+	//1.参数绑定
+	id := c.GetInt("id")
+	if err := c.ShouldBind(&adviser_status); err != nil {
+		code = errmsg.INVALID_PARAMS
+		c.JSON(
+			http.StatusOK, serialization.NewResponse(code),
+		)
+		return
+	}
+	//2.更新数据库
+	update_map := map[string]interface{}{
+		"status": adviser_status.Status,
+	}
+	if _, err := model.UpdateAdviser(model.Db, map[string]interface{}{"id": id}, update_map); err != nil {
+		fmt.Println(err)
+		code = errmsg.ERROR_DATABASE
+		c.JSON(
+			http.StatusOK, serialization.NewResponse(code),
+		)
+	} else {
+		adviser, _ := model.GetOneAdviser(model.Db, map[string]interface{}{"id": id})
+		code = errmsg.SUCCSE
+		c.JSON(
+			http.StatusOK, serialization.NewResponseWithData(code, adviser),
+		)
+	}
+}
+
+//顾问端修改服务状态及价格
+func AdviserService(c *gin.Context) {
+	var edit_service model.EditService
+	var code int
+	//1.参数绑定
+	adviser_id := c.GetInt("id")
+	if err := c.ShouldBind(&edit_service); err != nil {
+		code = errmsg.INVALID_PARAMS
+		c.JSON(
+			http.StatusOK, serialization.NewResponse(code),
+		)
+		return
+	}
+	//2.判断数据库是否已存在对应服务信息
+	where := map[string]interface{}{"type": edit_service.Type, "adviser_id": adviser_id}
+	s, _ := model.GetOneService(model.Db, where)
+	//若存在，则更新对应status及cost
+	if s != nil {
+		update_map := map[string]interface{}{
+			"status": edit_service.Status,
+			"cost":   edit_service.Cost,
+		}
+		if _, err := model.UpdateService(model.Db, where, update_map); err != nil {
+			fmt.Println("2222", err)
+			code = errmsg.ERROR_DATABASE
+			c.JSON(
+				http.StatusOK, serialization.NewResponse(code),
+			)
+		} else {
+			service, _ := model.GetOneService(model.Db, where)
+			code = errmsg.SUCCSE
+			c.JSON(
+				http.StatusOK, serialization.NewResponseWithData(code, service),
+			)
+		}
+		return
+	}
+	//若不存在，则添加一条新记录
+	data := []map[string]interface{}{{"type": edit_service.Type, "status": edit_service.Status, "cost": edit_service.Cost, "adviser_id": adviser_id}}
+	if _, err := model.InsertService(model.Db, data); err != nil {
+		fmt.Println("3333", err)
+		code = errmsg.ERROR_DATABASE
+		c.JSON(
+			http.StatusOK, serialization.NewResponse(code),
+		)
+	} else {
+		service, _ := model.GetOneService(model.Db, where)
+		code = errmsg.SUCCSE
+		c.JSON(
+			http.StatusOK, serialization.NewResponseWithData(code, service),
+		)
+	}
 }

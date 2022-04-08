@@ -7,8 +7,11 @@ import (
 	"soulight/serialization"
 	"soulight/utils"
 	"soulight/utils/errmsg"
+	"strconv"
 	"time"
 
+	"github.com/didi/gendry/builder"
+	"github.com/didi/gendry/scanner"
 	"github.com/gin-gonic/gin"
 )
 
@@ -111,6 +114,7 @@ func UserEdit(c *gin.Context) {
 	//3.更新数据库
 	update_map := map[string]interface{}{
 		"username": edit_user.Username,
+		"img":      edit_user.Img,
 		"birth":    time.Unix(edit_user.Birth, 0),
 		"gender":   edit_user.Gender,
 		"bio":      edit_user.Bio,
@@ -130,4 +134,45 @@ func UserEdit(c *gin.Context) {
 		)
 	}
 
+}
+
+//顾问列表接口
+func AdviserList(c *gin.Context) {
+	var code int
+	//1.参数绑定
+	pageSize, _ := strconv.Atoi(c.Query("pagesize"))
+	pageNum, _ := strconv.Atoi(c.Query("pagenum"))
+	//2.查询数据库
+	offset := (pageNum - 1) * pageSize
+	where := map[string]interface{}{"_limit": []uint{uint(offset), uint(pageSize)}}
+	columns := []string{"adviser_name", "img", "bio"}
+	cond, vals, err := builder.BuildSelect("adviser", where, columns)
+	if nil != err {
+		code = errmsg.ERROR
+		c.JSON(
+			http.StatusOK, serialization.NewResponse(code),
+		)
+		return
+	}
+	row, err := model.Db.Query(cond, vals...)
+	if nil != err || nil == row {
+		fmt.Println(err)
+		code = errmsg.ERROR_DATABASE
+		c.JSON(
+			http.StatusOK, serialization.NewResponse(code),
+		)
+		return
+	}
+	defer row.Close()
+	var res []*model.AdviserList
+	if err = scanner.Scan(row, &res); err != nil {
+		code = errmsg.ERROR
+		c.JSON(
+			http.StatusOK, serialization.NewResponse(code),
+		)
+	}
+	code = errmsg.SUCCSE
+	c.JSON(
+		http.StatusOK, serialization.NewResponseWithData(code, res),
+	)
 }
