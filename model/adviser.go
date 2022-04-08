@@ -40,11 +40,7 @@ type EditAdviser struct {
 	WorkExp     string `json:"work_exp" binding:"required"`
 	About       string `json:"about"`
 }
-type AdviserList struct {
-	AdviserName string `json:"adviser_name"`
-	Img         string `json:"img"`
-	Bio         string `json:"bio"`
-}
+
 type AdviserInfo struct {
 	AdviserName string  `json:"adviser_name"`
 	Img         string  `json:"img"`

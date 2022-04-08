@@ -176,3 +176,56 @@ func AdviserList(c *gin.Context) {
 		http.StatusOK, serialization.NewResponseWithData(code, res),
 	)
 }
+
+//顾问主页接口
+func AdviserInfoForUser(c *gin.Context) {
+	var adviserinfo model.AdviserInfoForUser
+	var code int
+	//1.参数绑定
+	adviser_id, _ := strconv.Atoi(c.Query("adviser_id"))
+	//2.查询adviser表
+	where := map[string]interface{}{"id": adviser_id}
+	columns := []string{"adviser_name", "img", "bio", "about"}
+	cond, vals, err := builder.BuildSelect("adviser", where, columns)
+	if nil != err {
+		code = errmsg.ERROR
+		c.JSON(
+			http.StatusOK, serialization.NewResponse(code),
+		)
+		return
+	}
+	row, err := model.Db.Query(cond, vals...)
+	if nil != err || nil == row {
+		fmt.Println(err)
+		code = errmsg.ERROR_DATABASE
+		c.JSON(
+			http.StatusOK, serialization.NewResponse(code),
+		)
+		return
+	}
+	defer row.Close()
+	if err = scanner.Scan(row, &adviserinfo); err != nil {
+		code = errmsg.ERROR
+		c.JSON(
+			http.StatusOK, serialization.NewResponse(code),
+		)
+		return
+	}
+	//3.查询service表
+	where = map[string]interface{}{"adviser_id": adviser_id}
+	var res []*model.Service
+	if res, err = model.GetMultiService(model.Db, where); err != nil {
+		fmt.Println(err)
+		code = errmsg.ERROR_DATABASE
+		c.JSON(
+			http.StatusOK, serialization.NewResponse(code),
+		)
+		return
+	}
+	adviserinfo.Services = res
+	code = errmsg.SUCCSE
+	c.JSON(
+		http.StatusOK, serialization.NewResponseWithData(code, adviserinfo),
+	)
+
+}

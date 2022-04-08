@@ -22,6 +22,7 @@ func NewRouter() *gin.Engine {
 			//用户模块
 			authed.POST("user/edit", api.UserEdit)
 			authed.GET("user/advisers", api.AdviserList)
+			authed.GET("user/adviser", api.AdviserInfoForUser)
 			//顾问模块
 			authed.POST("adviser/edit", api.AdviserEdit)
 			authed.POST("adviser/status", api.AdviserStatus)

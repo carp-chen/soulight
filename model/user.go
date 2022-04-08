@@ -36,6 +36,20 @@ type EditUser struct {
 	About    string `json:"about"`
 }
 
+type AdviserInfoForUser struct {
+	AdviserName string      `json:"adviser_name"`
+	Img         string      `json:"img"`
+	Bio         string      `json:"bio"`
+	Services    interface{} `json:"services"`
+	About       string      `json:"about"`
+}
+
+type AdviserList struct {
+	AdviserName string `json:"adviser_name"`
+	Img         string `json:"img"`
+	Bio         string `json:"bio"`
+}
+
 //GetOne gets one record from table user by condition "where"
 func GetOneUser(db *sql.DB, where map[string]interface{}) (*User, error) {
 	if nil == db {
