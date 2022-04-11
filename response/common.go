@@ -1,6 +1,10 @@
-package serialization
+package response
 
-import "soulight/utils/errmsg"
+import (
+	"soulight/utils/errmsg"
+
+	"github.com/gin-gonic/gin"
+)
 
 type Response struct {
 	Status  int    `json:"status"`
@@ -32,5 +36,20 @@ func NewResponseWithToken(code int, data interface{}, token string) *ResponseWit
 	return &ResponseWithToken{
 		NewResponseWithData(code, data),
 		token,
+	}
+}
+
+func SendResponse(c *gin.Context, arg ...interface{}) {
+	switch len(arg) {
+	case 1:
+		code := arg[0].(int)
+		c.JSON(200, NewResponse(code))
+	case 2:
+		code := arg[0].(int)
+		c.JSON(200, NewResponseWithData(code, arg[1]))
+	case 3:
+		code := arg[0].(int)
+		token := arg[2].(string)
+		c.JSON(200, NewResponseWithToken(code, arg[1], token))
 	}
 }

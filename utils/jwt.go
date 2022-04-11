@@ -11,6 +11,7 @@ import (
 type Claims struct {
 	Id       int    `json:"id"`
 	Username string `json:"username"`
+	Identity string `json:"identity"`
 	jwt.StandardClaims
 }
 
@@ -23,12 +24,13 @@ var (
 )
 
 //GenerateToken 签发用户Token
-func GenerateToken(id int, username string) (string, error) {
+func GenerateToken(id int, username string, identity string) (string, error) {
 	nowTime := time.Now()
 	expireTime := nowTime.Add(24 * time.Hour)
 	claims := Claims{
 		Id:       id,
 		Username: username,
+		Identity: identity,
 		StandardClaims: jwt.StandardClaims{
 			ExpiresAt: expireTime.Unix(),
 			Issuer:    "soulight",
