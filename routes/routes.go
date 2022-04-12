@@ -16,8 +16,8 @@ func NewRouter() *gin.Engine {
 		// 用户及顾问注册(登陆)
 		v1.POST("user/register", api.UserRegister)
 		v1.POST("adviser/register", api.AdviserRegister)
-		authed := v1.Group("/") //需要登陆保护
-		authed.Use(middleware.JwtToken())
+		authed := v1.Group("/")                                  //需要登陆保护
+		authed.Use(middleware.JwtToken(), middleware.Identify()) //jwt验证，身份验证
 		{
 			//用户模块
 			authed.POST("user/edit", api.UserEdit)
@@ -28,6 +28,12 @@ func NewRouter() *gin.Engine {
 			authed.POST("adviser/status", api.AdviserStatus)
 			authed.GET("adviser/info", api.AdviserInfo)
 			authed.POST("adviser/service", api.AdviserService)
+			//订单模块
+			authed.POST("order/create", api.OrderCreate)
+			authed.GET("order/list", api.OrderList)
+			authed.GET("order/info", api.OrderInfo)
+			authed.POST("order/reply", api.OrderReply)
+			authed.POST("order/urgent", api.OrderUrgent)
 		}
 	}
 	return r

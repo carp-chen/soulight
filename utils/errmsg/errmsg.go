@@ -5,7 +5,7 @@ const (
 	ERROR          = 500
 	INVALID_PARAMS = 400
 
-	// code= 1000... 用户模块的错误
+	// code= 10000... 用户与顾问模块的错误
 	ERROR_USERNAME_USED    = 10001
 	ERROR_PASSWORD_WRONG   = 10002
 	ERROR_USER_NOT_EXIST   = 10003
@@ -16,9 +16,10 @@ const (
 	ERROR_TOKEN_TYPE_WRONG = 10008
 	ERROR_USER_NO_RIGHT    = 10009
 
-	// code= 2000... 顾问模块的错误
+	// code= 20000... 订单模块的错误
+	ERROR_COINS_NOT_ENOUGH = 20001
 
-	//code=3000 数据库错误
+	//code=30000 数据库错误
 	ERROR_DATABASE = 30000
 )
 
@@ -35,6 +36,7 @@ var codeMsg = map[int]string{
 	ERROR_TOKEN_WRONG:      "TOKEN不正确,请重新登陆",
 	ERROR_TOKEN_TYPE_WRONG: "TOKEN格式错误,请重新登陆",
 	ERROR_USER_NO_RIGHT:    "该用户无权限",
+	ERROR_COINS_NOT_ENOUGH: "金币不足",
 	ERROR_DATABASE:         "数据库操作出错,请重试",
 }
 

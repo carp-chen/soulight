@@ -20,11 +20,12 @@ type User struct {
 	Password  string    `json:"password" validate:"required,min=6,max=30" label:"密码"`
 	Img       string    `json:"img"`
 	Birth     time.Time `json:"birth"`
-	Gender    int       `json:"gender"`
+	Gender    int8      `json:"gender"`
 	Bio       string    `json:"bio"`
 	About     string    `json:"about"`
+	Coins     int       `json:"coins"`
 	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"update_at"`
+	UpdateAt  time.Time `json:"update_at"`
 }
 
 type EditUser struct {

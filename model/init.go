@@ -3,17 +3,27 @@ package model
 import (
 	"database/sql"
 	"fmt"
+	"log"
 	"net/url"
+	"os"
 	"strconv"
 	"time"
 
 	"github.com/didi/gendry/manager"
 	"github.com/didi/gendry/scanner"
 	_ "github.com/go-sql-driver/mysql"
+	"github.com/robfig/cron/v3"
 )
 
 var Db *sql.DB
+var Cron *cron.Cron
 var err error
+
+func init() {
+	Cron = cron.New(cron.WithSeconds(), cron.WithChain(cron.SkipIfStillRunning(cron.DefaultLogger)), cron.WithLogger(
+		cron.VerbosePrintfLogger(log.New(os.Stdout, "cron: ", log.LstdFlags))))
+	Cron.Start()
+}
 
 func Database(DbHost string, DbPort string, DbUser string, DbPassWord string, DbName string) {
 	dbport, _ := strconv.Atoi(DbPort)

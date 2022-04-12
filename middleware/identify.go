@@ -20,15 +20,15 @@ func Identify() gin.HandlerFunc {
 				c.Abort()
 				return
 			}
-			c.Set("indentity", u)
+			c.Set("user", u)
 		} else if claims.Identity == "adviser" {
-			a, _ := model.GetOneAdviser(model.Db, map[string]interface{}{"id": claims.Id})
-			if a == nil {
+			ad, _ := model.GetOneAdviser(model.Db, map[string]interface{}{"id": claims.Id})
+			if ad == nil {
 				response.SendResponse(c, errmsg.ERROR_USER_NOT_EXIST)
 				c.Abort()
 				return
 			}
-			c.Set("indentity", a)
+			c.Set("adviser", ad)
 		}
 	}
 
