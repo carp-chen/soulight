@@ -69,14 +69,8 @@ func OrderCreate(c *gin.Context) {
 	}
 	conn.Commit()
 	//5.开启定时任务，若24小时未回复，则订单过期，金币归还用户
-	now := order.OrderTime
-	now = now.Add(24 * time.Hour)
-	month := strconv.Itoa(int(now.Month()))
-	day := strconv.Itoa(now.Day())
-	hour := strconv.Itoa(now.Hour())
-	minute := strconv.Itoa(now.Minute())
-	second := strconv.Itoa(now.Second())
-	spec := second + " " + minute + " " + hour + " " + day + " " + month + " *"
+	exp_time := order.OrderTime.Add(24 * time.Hour)
+	spec := utils.GetCronSpec(exp_time)
 	var entry_id cron.EntryID
 	order_id := order.OrderID
 	user_id := user.ID
@@ -86,7 +80,7 @@ func OrderCreate(c *gin.Context) {
 		if o, err = model.GetOneOrder(model.Db, map[string]interface{}{"order_id": order_id}); err != nil {
 			return
 		}
-		if o.Status == 0 {
+		if o.Status != 1 {
 			//开启事务，修改订单状态为过期，并归还用户金币
 			conn, _ := model.Db.Begin()
 			if _, err := conn.Exec("update orders set status=2 where order_id=?", order_id); err != nil {
@@ -154,14 +148,12 @@ func OrderInfo(c *gin.Context) {
 	from orders as o left join user as u on o.user_id=u.id 
 	where o.order_id=? `, order_id)
 	if nil != err || nil == row {
-		fmt.Println(err)
 		response.SendResponse(c, errmsg.ERROR_DATABASE)
 		return
 	}
 	defer row.Close()
 	var res *model.OrderInfo
 	if err = scanner.Scan(row, &res); err != nil {
-		fmt.Println(err)
 		response.SendResponse(c, errmsg.ERROR)
 		return
 	}
@@ -196,13 +188,11 @@ func OrderReply(c *gin.Context) {
 	conn, _ := model.Db.Begin()
 	if _, err := conn.Exec("update orders set status=1,reply=?,delivery_time=? where order_id=?",
 		reply.Reply, o.DeliveryTime, reply.OrderID); err != nil {
-		fmt.Println(err)
 		conn.Rollback()
 		response.SendResponse(c, errmsg.ERROR_DATABASE)
 		return
 	}
 	if _, err := conn.Exec("update adviser set coins=coins+? where id=?", o.Cost, adviser_id); err != nil {
-		fmt.Println(err)
 		conn.Rollback()
 		response.SendResponse(c, errmsg.ERROR_DATABASE)
 		return
@@ -213,5 +203,71 @@ func OrderReply(c *gin.Context) {
 
 //订单加急
 func OrderUrgent(c *gin.Context) {
-
+	//1.绑定参数
+	user_id := c.GetInt("id")
+	order_id, _ := c.GetQuery("order_id")
+	//2.查询订单
+	order, _ := model.GetOneOrder(model.Db, map[string]interface{}{"order_id": order_id})
+	if order == nil {
+		response.SendResponse(c, errmsg.ERROR_ORDER_NOT_EXIST)
+		return
+	} else {
+		if order.Status != 0 {
+			response.SendResponse(c, errmsg.ERROR_ORDER_STATUS_WRONG)
+			return
+		}
+	}
+	extra_cost := order.Cost / 2
+	//3.检查用户是否有足够的金币
+	u, _ := c.Get("user")
+	user, _ := u.(*model.User)
+	if user.Coins < extra_cost {
+		response.SendResponse(c, errmsg.ERROR_COINS_NOT_ENOUGH)
+		return
+	}
+	//4.更新订单状态,加急时间并给顾问增加金币
+	order.Status = 3
+	order.Cost += extra_cost
+	conn, _ := model.Db.Begin()
+	if _, err := conn.Exec("update orders set status=3,cost=cost+? where order_id=?", extra_cost, order_id); err != nil {
+		fmt.Println(err)
+		conn.Rollback()
+		response.SendResponse(c, errmsg.ERROR_DATABASE)
+		return
+	}
+	if _, err := conn.Exec("update user set coins=coins-? where id=?", extra_cost, user_id); err != nil {
+		fmt.Println(err)
+		conn.Rollback()
+		response.SendResponse(c, errmsg.ERROR_DATABASE)
+		return
+	}
+	conn.Commit()
+	//5.开启定时任务，若1小时未回复，则订单变为普通状态，金币归还用户
+	exp_time := time.Now().Add(30 * time.Second)
+	spec := utils.GetCronSpec(exp_time)
+	var entry_id cron.EntryID
+	entry_id, _ = model.Cron.AddFunc(spec, func() {
+		var err error
+		var o *model.Order
+		if o, err = model.GetOneOrder(model.Db, map[string]interface{}{"order_id": order_id}); err != nil {
+			return
+		}
+		if o.Status != 1 {
+			//开启事务，修改订单状态及金额，并归还用户金币
+			conn, _ := model.Db.Begin()
+			if _, err := conn.Exec("update orders set status=0,cost=cost-? where order_id=?", extra_cost, order_id); err != nil {
+				fmt.Println(err)
+				conn.Rollback()
+				return
+			}
+			if _, err := conn.Exec("update user set coins=coins+? where id=?", extra_cost, user_id); err != nil {
+				fmt.Println(err)
+				conn.Rollback()
+				return
+			}
+			conn.Commit()
+		}
+		model.Cron.Remove(entry_id)
+	})
+	response.SendResponse(c, errmsg.SUCCSE, order)
 }
