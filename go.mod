@@ -18,6 +18,7 @@ require (
 
 require (
 	github.com/caibirdme/gforge v0.0.0-20180821021955-5b28ef91cac0 // indirect
+	github.com/garyburd/redigo v1.6.3 // indirect
 	github.com/gin-contrib/sse v0.1.0 // indirect
 	github.com/golang/protobuf v1.3.3 // indirect
 	github.com/json-iterator/go v1.1.9 // indirect

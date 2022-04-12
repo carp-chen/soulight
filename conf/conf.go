@@ -11,12 +11,13 @@ var (
 	AppMode    string
 	HttpPort   string
 	JwtKey     string
-	Db         string
 	DbHost     string
 	DbPort     string
 	DbUser     string
 	DbPassWord string
 	DbName     string
+	RedisHost  string
+	RedisPort  string
 )
 
 func Init() {
@@ -27,7 +28,8 @@ func Init() {
 	}
 	LoadServer(file)
 	LoadMysqlData(file)
-	model.Database(DbHost, DbPort, DbUser, DbPassWord, DbName)
+	LoadRedis(file)
+	model.Init(DbHost, DbPort, DbUser, DbPassWord, DbName, RedisHost, RedisPort)
 }
 
 func LoadServer(file *ini.File) {
@@ -37,10 +39,14 @@ func LoadServer(file *ini.File) {
 }
 
 func LoadMysqlData(file *ini.File) {
-	Db = file.Section("database").Key("Db").String()
-	DbHost = file.Section("database").Key("DbHost").String()
-	DbPort = file.Section("database").Key("DbPort").String()
-	DbUser = file.Section("database").Key("DbUser").String()
-	DbPassWord = file.Section("database").Key("DbPassWord").String()
-	DbName = file.Section("database").Key("DbName").String()
+	DbHost = file.Section("mysql").Key("DbHost").String()
+	DbPort = file.Section("mysql").Key("DbPort").String()
+	DbUser = file.Section("mysql").Key("DbUser").String()
+	DbPassWord = file.Section("mysql").Key("DbPassWord").String()
+	DbName = file.Section("mysql").Key("DbName").String()
+}
+
+func LoadRedis(file *ini.File) {
+	RedisHost = file.Section("redis").Key("RedisHost").String()
+	RedisPort = file.Section("redis").Key("RedisPort").String()
 }
