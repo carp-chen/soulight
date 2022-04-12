@@ -21,6 +21,7 @@ type Order struct {
 	AdviserID    int       `json:"adviser_id"`
 	Situation    string    `json:"situation"`
 	Question     string    `json:"question"`
+	Reply        string    `json:"reply"`
 	Cost         int       `json:"cost"`
 	Status       int8      `json:"status"`
 	ServiceType  int8      `json:"service_type"`
@@ -29,12 +30,13 @@ type Order struct {
 }
 
 type OrderList struct {
-	OrderID   string    `json:"order_id"`
-	Img       string    `json:"img"`
-	UserName  string    `json:"username"`
-	Status    int8      `json:"status"`
-	Question  string    `json:"question"`
-	OrderTime time.Time `json:"order_time"`
+	OrderID     string    `json:"order_id"`
+	Img         string    `json:"img"`
+	UserName    string    `json:"username"`
+	Status      int8      `json:"status"`
+	Question    string    `json:"question"`
+	ServiceType int8      `json:"service_type"`
+	OrderTime   time.Time `json:"order_time"`
 }
 
 type OrderInfo struct {
@@ -48,6 +50,11 @@ type OrderInfo struct {
 	Gender       string    `json:"gender"`
 	Situation    string    `json:"situation"`
 	Question     string    `json:"question"`
+}
+
+type OrderReply struct {
+	OrderID string `json:"order_id"`
+	Reply   string `json:"reply"`
 }
 
 //GetOne gets one record from table order by condition "where"
