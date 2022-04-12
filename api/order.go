@@ -12,6 +12,7 @@ import (
 	"github.com/didi/gendry/builder"
 	"github.com/didi/gendry/scanner"
 	"github.com/gin-gonic/gin"
+	"github.com/robfig/cron/v3"
 )
 
 //创建订单
@@ -77,27 +78,32 @@ func OrderCreate(c *gin.Context) {
 	minute := strconv.Itoa(now.Minute())
 	second := strconv.Itoa(now.Second() + 5)
 	spec := second + " " + minute + " " + hour + " " + day + " " + month + " *"
-	entry_id, err := model.Cron.AddFunc(spec, func() {
+	var entry_id cron.EntryID
+	order_id := order.OrderID
+	user_id := user.ID
+	entry_id, _ = model.Cron.AddFunc(spec, func() {
 		var err error
 		var o *model.Order
-		if o, err = model.GetOneOrder(model.Db, map[string]interface{}{"order_id": order.OrderID}); err != nil {
-			goto ERR
+		if o, err = model.GetOneOrder(model.Db, map[string]interface{}{"order_id": order_id}); err != nil {
+			return
 		}
 		if o.Status == 0 {
-			if _, err = model.UpdateOrder(model.Db, map[string]interface{}{"order_id": order.OrderID}, map[string]interface{}{"status": 2}); err != nil {
-				goto ERR
+			//开启事务，修改订单状态为过期，并归还用户金币
+			conn, _ := model.Db.Begin()
+			if _, err := conn.Exec("update orders set status=2 where order_id=?", order_id); err != nil {
+				fmt.Println(err)
+				conn.Rollback()
+				return
 			}
-			if _, err = model.UpdateUser(model.Db, map[string]interface{}{"id": user.ID}, map[string]interface{}{"coins": user.Coins + order.Cost}); err != nil {
-				goto ERR
+			if _, err := conn.Exec("update user set coins=coins+? where id=?", o.Cost, user_id); err != nil {
+				fmt.Println(err)
+				conn.Rollback()
+				return
 			}
+			conn.Commit()
 		}
-	ERR:
-		fmt.Println(err)
+		model.Cron.Remove(entry_id)
 	})
-	if err != nil {
-		fmt.Println(err)
-	}
-	model.Cron.Remove(entry_id)
 	response.SendResponse(c, errmsg.SUCCSE, order)
 }
 
