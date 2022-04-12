@@ -19,6 +19,7 @@ import (
 var Db *sql.DB
 var Cron *cron.Cron
 var pool *redis.Pool
+var err error
 
 func Init(DbHost string, Dbport string, Dbuser string, Dbpass string, Dbname string, RedisHost string, RedisPort string) {
 	InitCron()
@@ -54,7 +55,7 @@ func InitRedis(Host string, Port string) {
 
 func InitMysql(DbHost string, DbPort string, DbUser string, DbPassWord string, DbName string) {
 	dbport, _ := strconv.Atoi(DbPort)
-	Db, err := manager.New(DbName, DbUser, DbPassWord, DbHost).Set(
+	Db, err = manager.New(DbName, DbUser, DbPassWord, DbHost).Set(
 		manager.SetCharset("utf8mb4"),
 		manager.SetParseTime(true),
 		manager.SetLoc(url.QueryEscape("Asia/Shanghai")),

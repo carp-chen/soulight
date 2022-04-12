@@ -34,6 +34,8 @@ func NewRouter() *gin.Engine {
 			authed.GET("order/info", api.OrderInfo)
 			authed.POST("order/reply", api.OrderReply)
 			authed.POST("order/urgent", api.OrderUrgent)
+			//评论模块
+			authed.POST("order/review", api.OrderReview)
 		}
 	}
 	return r

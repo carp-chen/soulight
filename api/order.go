@@ -36,6 +36,7 @@ func OrderCreate(c *gin.Context) {
 	order.Status = 0
 	order.OrderTime = time.Now()
 	order.Reply = ""
+	order.Rate = 0
 	//4.将订单写入数据库并修改用户金币
 	order_map := map[string]interface{}{
 		"order_id":     order.OrderID,
@@ -48,6 +49,7 @@ func OrderCreate(c *gin.Context) {
 		"status":       order.Status,
 		"service_type": order.ServiceType,
 		"order_time":   order.OrderTime,
+		"rate":         order.Rate,
 	}
 	var data []map[string]interface{}
 	data = append(data, order_map)

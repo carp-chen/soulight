@@ -27,6 +27,7 @@ type Order struct {
 	ServiceType  int8      `json:"service_type"`
 	OrderTime    time.Time `json:"order_time"`
 	DeliveryTime time.Time `json:"delivery_time"`
+	Rate         float64   `json:"rate"`
 }
 
 type OrderList struct {
