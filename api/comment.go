@@ -42,6 +42,13 @@ func OrderReview(c *gin.Context) {
 		response.SendResponse(c, errmsg.ERROR_DATABASE)
 		return
 	}
+	if _, err := conn.Exec("update adviser set reviews_num=reviews_num+1,total_rates=total_rates+? where id=?",
+		review.Rate, order.AdviserID); err != nil {
+		fmt.Println(err)
+		conn.Rollback()
+		response.SendResponse(c, errmsg.ERROR_DATABASE)
+		return
+	}
 	conn.Commit()
 	comment, _ := model.GetOneComment(model.Db, map[string]interface{}{"order_id": review.OrderID})
 	response.SendResponse(c, errmsg.SUCCSE, comment)

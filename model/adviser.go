@@ -15,22 +15,23 @@ import (
 
 // Adviser is a mapping object for adviser table in mysql
 type Adviser struct {
-	ID          int       `json:"id"`
-	AdviserName string    `json:"adviser_name" validate:"required,min=4,max=20" label:"用户名"`
-	Password    string    `json:"password" validate:"required,min=6,max=30" label:"密码"`
-	Img         string    `json:"img"`
-	Bio         string    `json:"bio"`
-	WorkExp     string    `json:"work_exp"`
-	About       string    `json:"about"`
-	Rate        float64   `json:"rate"`
-	Coins       int       `json:"coins"`
-	Readings    int       `json:"readings"`
-	Response    float64   `json:"response"`
-	Ontime      float64   `json:"ontime"`
-	Accuracy    float64   `json:"accuracy"`
-	Status      int8      `json:"status"`
-	CreatedAt   time.Time `json:"created_at"`
-	UpdateAt    time.Time `json:"update_at"`
+	ID                int       `json:"id"`
+	AdviserName       string    `json:"adviser_name" validate:"required,min=4,max=20" label:"用户名"`
+	Password          string    `json:"password" validate:"required,min=6,max=30" label:"密码"`
+	Img               string    `json:"img"`
+	Bio               string    `json:"bio"`
+	WorkExp           string    `json:"work_exp"`
+	About             string    `json:"about"`
+	TotalRates        int       `json:"total_rates"`
+	ReviewsNum        int       `json:"reviews_num"`
+	Coins             int       `json:"coins"`
+	Readings          int       `json:"readings"`
+	CompletedReadings int       `json:"complete_readings"`
+	Response          float64   `json:"response"`
+	Accuracy          float64   `json:"accuracy"`
+	Status            int8      `json:"status"`
+	CreatedAt         time.Time `json:"created_at"`
+	UpdateAt          time.Time `json:"update_at"`
 }
 
 type EditAdviser struct {
@@ -39,19 +40,6 @@ type EditAdviser struct {
 	Bio         string `json:"bio"`
 	WorkExp     string `json:"work_exp" binding:"required"`
 	About       string `json:"about"`
-}
-
-type AdviserInfo struct {
-	AdviserName string  `json:"adviser_name"`
-	Img         string  `json:"img"`
-	Bio         string  `json:"bio"`
-	Rate        float64 `json:"rate"`
-	Coins       int     `json:"coins"`
-	Readings    int     `json:"readings"`
-	Response    float64 `json:"response"`
-	Ontime      float64 `json:"ontime"`
-	Accuracy    float64 `json:"accuracy"`
-	Status      int8    `json:"status"`
 }
 
 type AdviserStatus struct {

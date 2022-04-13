@@ -78,6 +78,12 @@ func OrderCreate(c *gin.Context) {
 		response.SendResponse(c, errmsg.ERROR_DATABASE)
 		return
 	}
+	if _, err := conn.Exec("update adviser set readings=readings+1 where id=?", order.AdviserID); err != nil {
+		fmt.Println(err)
+		conn.Rollback()
+		response.SendResponse(c, errmsg.ERROR_DATABASE)
+		return
+	}
 	conn.Commit()
 	//5.开启定时任务，若24小时未回复，则订单过期，金币归还用户
 	exp_time := order.OrderTime.Add(24 * time.Hour)
@@ -225,6 +231,12 @@ func OrderReply(c *gin.Context) {
 	}
 	if _, err := conn.Exec(`insert into transaction_adviser(action,id,order_id,service_type,credits) 
 	    values(?,?,?,?,?)`, action, o.AdviserID, o.OrderID, o.ServiceType, o.Cost); err != nil {
+		conn.Rollback()
+		response.SendResponse(c, errmsg.ERROR_DATABASE)
+		return
+	}
+	if _, err := conn.Exec("update adviser set completed_readings=completed_readings+1 where id=?", o.AdviserID); err != nil {
+		fmt.Println(err)
 		conn.Rollback()
 		response.SendResponse(c, errmsg.ERROR_DATABASE)
 		return

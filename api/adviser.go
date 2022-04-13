@@ -97,8 +97,7 @@ func AdviserInfo(c *gin.Context) {
 	id := c.GetInt("id")
 	//2.查询数据库
 	where := map[string]interface{}{"id": id}
-	columns := []string{"adviser_name", "img", "bio", "rate", "coins", "readings", "response", "ontime", "accuracy", "status"}
-	cond, vals, err := builder.BuildSelect("adviser", where, columns)
+	cond, vals, err := builder.BuildSelect("adviser", where, nil)
 	if err != nil {
 		response.SendResponse(c, errmsg.ERROR)
 		return
@@ -109,7 +108,7 @@ func AdviserInfo(c *gin.Context) {
 		return
 	}
 	defer row.Close()
-	var res *model.AdviserInfo
+	var res *model.Adviser
 	if err = scanner.Scan(row, &res); err != nil {
 		response.SendResponse(c, errmsg.ERROR)
 		return

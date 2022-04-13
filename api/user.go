@@ -107,8 +107,8 @@ func AdviserList(c *gin.Context) {
 	//2.查询数据库
 	offset := (pageNum - 1) * pageSize
 	where := map[string]interface{}{"_limit": []uint{uint(offset), uint(pageSize)}}
-	columns := []string{"adviser_name", "img", "bio"}
-	cond, vals, err := builder.BuildSelect("adviser", where, columns)
+	// columns := []string{"adviser_name", "img", "bio"}
+	cond, vals, err := builder.BuildSelect("adviser", where, nil)
 	if nil != err {
 		response.SendResponse(c, errmsg.ERROR)
 		return
@@ -119,7 +119,7 @@ func AdviserList(c *gin.Context) {
 		return
 	}
 	defer rows.Close()
-	var res []*model.AdviserList
+	var res []*model.Adviser
 	if err = scanner.Scan(rows, &res); err != nil {
 		response.SendResponse(c, errmsg.ERROR)
 		return
