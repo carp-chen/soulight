@@ -74,12 +74,25 @@ func OrderReward(c *gin.Context) {
 		response.SendResponse(c, errmsg.ERROR_DATABASE)
 		return
 	}
+	if _, err := conn.Exec(`insert into transaction_user(action,id,order_id,service_type,credits) 
+	    values(?,?,?,?,?)`, 5, order.UserID, order.OrderID, order.ServiceType, reward.Reward); err != nil {
+		conn.Rollback()
+		response.SendResponse(c, errmsg.ERROR_DATABASE)
+		return
+	}
 	if _, err := conn.Exec("update adviser set coins=coins+? where id=?", reward.Reward, order.AdviserID); err != nil {
 		fmt.Println(err)
 		conn.Rollback()
 		response.SendResponse(c, errmsg.ERROR_DATABASE)
 		return
 	}
+	if _, err := conn.Exec(`insert into transaction_adviser(action,id,order_id,service_type,credits) 
+	    values(?,?,?,?,?)`, 3, order.AdviserID, order.OrderID, order.ServiceType, reward.Reward); err != nil {
+		conn.Rollback()
+		response.SendResponse(c, errmsg.ERROR_DATABASE)
+		return
+	}
+
 	conn.Commit()
 	response.SendResponse(c, errmsg.SUCCSE, order)
 }

@@ -60,11 +60,20 @@ func OrderCreate(c *gin.Context) {
 	}
 	cond, vals, _ := builder.BuildInsert("orders", data)
 	if _, err := conn.Exec(cond, vals...); err != nil {
+		fmt.Println(err)
 		conn.Rollback()
 		response.SendResponse(c, errmsg.ERROR_DATABASE)
 		return
 	}
 	if _, err := conn.Exec("update user set coins=coins-? where id=?", order.Cost, user.ID); err != nil {
+		fmt.Println(err)
+		conn.Rollback()
+		response.SendResponse(c, errmsg.ERROR_DATABASE)
+		return
+	}
+	if _, err := conn.Exec(`insert into transaction_user(action,id,order_id,service_type,credits) 
+	    values(?,?,?,?,?)`, 1, user.ID, order.OrderID, order.ServiceType, -order.Cost); err != nil {
+		fmt.Println(err)
 		conn.Rollback()
 		response.SendResponse(c, errmsg.ERROR_DATABASE)
 		return
@@ -91,6 +100,12 @@ func OrderCreate(c *gin.Context) {
 				return
 			}
 			if _, err := conn.Exec("update user set coins=coins+? where id=?", o.Cost, user_id); err != nil {
+				fmt.Println(err)
+				conn.Rollback()
+				return
+			}
+			if _, err := conn.Exec(`insert into transaction_user(action,id,order_id,service_type,credits) 
+	            values(?,?,?,?,?)`, 2, user_id, order_id, o.ServiceType, o.Cost); err != nil {
 				fmt.Println(err)
 				conn.Rollback()
 				return
@@ -187,6 +202,12 @@ func OrderReply(c *gin.Context) {
 		}
 	}
 	//3.更新订单状态,回复内容及完成时间并给顾问增加金币
+	var action int
+	if o.Status == 0 {
+		action = 1
+	} else if o.Status == 3 {
+		action = 2
+	}
 	o.Status = 1
 	o.Reply = reply.Reply
 	o.DeliveryTime = time.Now()
@@ -198,6 +219,12 @@ func OrderReply(c *gin.Context) {
 		return
 	}
 	if _, err := conn.Exec("update adviser set coins=coins+? where id=?", o.Cost, adviser_id); err != nil {
+		conn.Rollback()
+		response.SendResponse(c, errmsg.ERROR_DATABASE)
+		return
+	}
+	if _, err := conn.Exec(`insert into transaction_adviser(action,id,order_id,service_type,credits) 
+	    values(?,?,?,?,?)`, action, o.AdviserID, o.OrderID, o.ServiceType, o.Cost); err != nil {
 		conn.Rollback()
 		response.SendResponse(c, errmsg.ERROR_DATABASE)
 		return
@@ -230,25 +257,29 @@ func OrderUrgent(c *gin.Context) {
 		response.SendResponse(c, errmsg.ERROR_COINS_NOT_ENOUGH)
 		return
 	}
-	//4.更新订单状态,加急时间并给顾问增加金币
+	//4.更新订单状态、费用并扣除用户金币
 	order.Status = 3
 	order.Cost += extra_cost
 	conn, _ := model.Db.Begin()
 	if _, err := conn.Exec("update orders set status=3,cost=cost+? where order_id=?", extra_cost, order_id); err != nil {
-		fmt.Println(err)
 		conn.Rollback()
 		response.SendResponse(c, errmsg.ERROR_DATABASE)
 		return
 	}
 	if _, err := conn.Exec("update user set coins=coins-? where id=?", extra_cost, user_id); err != nil {
-		fmt.Println(err)
+		conn.Rollback()
+		response.SendResponse(c, errmsg.ERROR_DATABASE)
+		return
+	}
+	if _, err := conn.Exec(`insert into transaction_user(action,id,order_id,service_type,credits) 
+	    values(?,?,?,?,?)`, 3, user.ID, order.OrderID, order.ServiceType, -extra_cost); err != nil {
 		conn.Rollback()
 		response.SendResponse(c, errmsg.ERROR_DATABASE)
 		return
 	}
 	conn.Commit()
-	//5.开启定时任务，若1小时未回复，则订单变为普通状态，金币归还用户
-	exp_time := time.Now().Add(30 * time.Second)
+	//5.开启定时任务，若1小时未回复，则订单变为普通状态，归还用户金币
+	exp_time := time.Now().Add(10 * time.Second)
 	spec := utils.GetCronSpec(exp_time)
 	var entry_id cron.EntryID
 	entry_id, _ = model.Cron.AddFunc(spec, func() {
@@ -267,6 +298,11 @@ func OrderUrgent(c *gin.Context) {
 			}
 			if _, err := conn.Exec("update user set coins=coins+? where id=?", extra_cost, user_id); err != nil {
 				fmt.Println(err)
+				conn.Rollback()
+				return
+			}
+			if _, err := conn.Exec(`insert into transaction_user(action,id,order_id,service_type,credits) 
+	            values(?,?,?,?,?)`, 4, user.ID, order_id, o.ServiceType, extra_cost); err != nil {
 				conn.Rollback()
 				return
 			}

@@ -1,7 +1,6 @@
 package api
 
 import (
-	"fmt"
 	"net/http"
 	"soulight/model"
 	"soulight/response"
@@ -191,7 +190,6 @@ func GetFavorites(c *gin.Context) {
 	}
 	var ad_id_list []*ad_id
 	if err = scanner.Scan(rows, &ad_id_list); err != nil {
-		fmt.Println(err)
 		response.SendResponse(c, errmsg.ERROR)
 		return
 	}
