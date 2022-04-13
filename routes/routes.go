@@ -20,22 +20,28 @@ func NewRouter() *gin.Engine {
 		authed.Use(middleware.JwtToken(), middleware.Identify()) //jwt验证，身份验证
 		{
 			//用户模块
-			authed.POST("user/edit", api.UserEdit)
-			authed.GET("user/advisers", api.AdviserList)
-			authed.GET("user/adviser", api.AdviserInfoForUser)
+			user := authed.Group("user/")
+			user.POST("edit", api.UserEdit)
+			user.GET("advisers", api.AdviserList)
+			user.GET("adviser", api.AdviserInfoForUser)
+			user.POST("favorite", api.AddFavorite)
+			user.GET("favorites", api.GetFavorites)
 			//顾问模块
-			authed.POST("adviser/edit", api.AdviserEdit)
-			authed.POST("adviser/status", api.AdviserStatus)
-			authed.GET("adviser/info", api.AdviserInfo)
-			authed.POST("adviser/service", api.AdviserService)
+			adviser := authed.Group("adviser/")
+			adviser.POST("edit", api.AdviserEdit)
+			adviser.POST("status", api.AdviserStatus)
+			adviser.GET("info", api.AdviserInfo)
+			adviser.POST("service", api.AdviserService)
 			//订单模块
-			authed.POST("order/create", api.OrderCreate)
-			authed.GET("order/list", api.OrderList)
-			authed.GET("order/info", api.OrderInfo)
-			authed.POST("order/reply", api.OrderReply)
-			authed.POST("order/urgent", api.OrderUrgent)
+			order := authed.Group("order/")
+			order.POST("create", api.OrderCreate)
+			order.GET("list", api.OrderList)
+			order.GET("info", api.OrderInfo)
+			order.POST("reply", api.OrderReply)
+			order.POST("urgent", api.OrderUrgent)
 			//评论模块
-			authed.POST("order/review", api.OrderReview)
+			order.POST("review", api.OrderReview)
+			order.POST("reward", api.OrderReward)
 		}
 	}
 	return r

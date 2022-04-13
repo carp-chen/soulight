@@ -15,7 +15,6 @@ import (
 
 // Order is a mapping object for order table in mysql
 type Order struct {
-	ID           int       `json:"id"`
 	OrderID      string    `json:"order_id"`
 	UserID       int       `json:"user_id"`
 	AdviserID    int       `json:"adviser_id"`

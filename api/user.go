@@ -1,6 +1,7 @@
 package api
 
 import (
+	"fmt"
 	"net/http"
 	"soulight/model"
 	"soulight/response"
@@ -113,14 +114,14 @@ func AdviserList(c *gin.Context) {
 		response.SendResponse(c, errmsg.ERROR)
 		return
 	}
-	row, err := model.Db.Query(cond, vals...)
-	if nil != err || nil == row {
+	rows, err := model.Db.Query(cond, vals...)
+	if nil != err || nil == rows {
 		response.SendResponse(c, errmsg.ERROR_DATABASE)
 		return
 	}
-	defer row.Close()
+	defer rows.Close()
 	var res []*model.AdviserList
-	if err = scanner.Scan(row, &res); err != nil {
+	if err = scanner.Scan(rows, &res); err != nil {
 		response.SendResponse(c, errmsg.ERROR)
 		return
 	}
@@ -159,4 +160,57 @@ func AdviserInfoForUser(c *gin.Context) {
 	}
 	adviserinfo.Services = res
 	response.SendResponse(c, errmsg.SUCCSE, adviserinfo)
+}
+
+//收藏顾问
+func AddFavorite(c *gin.Context) {
+	//1.参数绑定
+	user_id := c.GetInt("id")
+	adviser_id, _ := strconv.Atoi(c.Query("adviser_id"))
+	//2.添加到数据库
+	if _, err := model.Db.Exec("insert into favorite(user_id,adviser_id) values(?,?)", user_id, adviser_id); err != nil {
+		response.SendResponse(c, errmsg.ERROR_DUPLICATE_FAVORITE)
+		return
+	}
+	response.SendResponse(c, errmsg.SUCCSE)
+}
+
+//获取收藏顾问列表
+func GetFavorites(c *gin.Context) {
+	//1.参数绑定
+	user_id := c.GetInt("id")
+	//2.首先查询favorite表，获取用户收藏的所有顾问的id
+	rows, err := model.Db.Query("select adviser_id from favorite where user_id=?", user_id)
+	if nil != err || nil == rows {
+		response.SendResponse(c, errmsg.ERROR_DATABASE)
+		return
+	}
+	defer rows.Close()
+	type ad_id struct {
+		Adviser_id int `json:"adviser_id"`
+	}
+	var ad_id_list []*ad_id
+	if err = scanner.Scan(rows, &ad_id_list); err != nil {
+		fmt.Println(err)
+		response.SendResponse(c, errmsg.ERROR)
+		return
+	}
+	var adviser_id_list []int
+	for _, v := range ad_id_list {
+		adviser_id_list = append(adviser_id_list, v.Adviser_id)
+	}
+	//3.查询adviser表，根据adviser_id_list获取所有顾问的信息
+	where := map[string]interface{}{"id in": adviser_id_list}
+	cond, vals, _ := builder.BuildSelect("adviser", where, nil)
+	rows, err = model.Db.Query(cond, vals...)
+	if nil != err || nil == rows {
+		response.SendResponse(c, errmsg.ERROR_DATABASE)
+		return
+	}
+	var res []*model.Adviser
+	if err = scanner.Scan(rows, &res); err != nil {
+		response.SendResponse(c, errmsg.ERROR)
+		return
+	}
+	response.SendResponse(c, errmsg.SUCCSE, res)
 }

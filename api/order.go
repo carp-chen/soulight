@@ -127,14 +127,14 @@ func OrderList(c *gin.Context) {
 				"adviser_id": adviser_id,
 			})
 	}
-	row, err := model.Db.Query(cond, vals...)
-	if nil != err || nil == row {
+	rows, err := model.Db.Query(cond, vals...)
+	if nil != err || nil == rows {
 		response.SendResponse(c, errmsg.ERROR_DATABASE)
 		return
 	}
-	defer row.Close()
+	defer rows.Close()
 	var res []*model.OrderList
-	if err = scanner.Scan(row, &res); err != nil {
+	if err = scanner.Scan(rows, &res); err != nil {
 		response.SendResponse(c, errmsg.ERROR)
 		return
 	}
@@ -180,6 +180,9 @@ func OrderReply(c *gin.Context) {
 	} else {
 		if o.Status == 2 {
 			response.SendResponse(c, errmsg.ERROR_ORDER_TIMEOUT)
+			return
+		} else if o.Status == 1 {
+			response.SendResponse(c, errmsg.ERROR_ORDER_DUPLICATE_REPLY)
 			return
 		}
 	}
