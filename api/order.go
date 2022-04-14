@@ -154,7 +154,7 @@ func OrderReply(c *gin.Context) {
 	//1.绑定参数
 	adviser_id := c.GetInt("id")
 	ad, _ := c.Get("adviser")
-	adviser, _ := ad.(*model.User)
+	adviser, _ := ad.(*model.Adviser)
 	if err := c.ShouldBind(&reply); err != nil {
 		response.SendResponse(c, errmsg.INVALID_PARAMS)
 		return
@@ -186,17 +186,20 @@ func OrderReply(c *gin.Context) {
 	conn, _ := model.Db.Begin()
 	if _, err := conn.Exec("update orders set status=1,reply=?,delivery_time=? where order_id=?",
 		reply.Reply, o.DeliveryTime, reply.OrderID); err != nil {
+		fmt.Println(err)
 		conn.Rollback()
 		response.SendResponse(c, errmsg.ERROR_DATABASE)
 		return
 	}
 	if _, err := conn.Exec("update adviser set coins=coins+? where id=?", o.Cost, adviser_id); err != nil {
+		fmt.Println(err)
 		conn.Rollback()
 		response.SendResponse(c, errmsg.ERROR_DATABASE)
 		return
 	}
 	if _, err := conn.Exec(`insert into transaction_adviser(action,id,order_id,service_type,coins,credits) 
 	    values(?,?,?,?,?,?)`, action, o.AdviserID, o.OrderID, o.ServiceType, adviser.Coins+o.Cost, o.Cost); err != nil {
+		fmt.Println(err)
 		conn.Rollback()
 		response.SendResponse(c, errmsg.ERROR_DATABASE)
 		return
