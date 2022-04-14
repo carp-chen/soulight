@@ -12,7 +12,6 @@ import (
 	"github.com/didi/gendry/builder"
 	"github.com/didi/gendry/scanner"
 	"github.com/gin-gonic/gin"
-	"github.com/robfig/cron/v3"
 )
 
 //创建订单
@@ -85,42 +84,6 @@ func OrderCreate(c *gin.Context) {
 		return
 	}
 	conn.Commit()
-	//5.开启定时任务，若24小时未回复，则订单过期，金币归还用户
-	exp_time := order.OrderTime.Add(30 * time.Second)
-	spec := utils.GetCronSpec(exp_time)
-	var entry_id cron.EntryID
-	order_id := order.OrderID
-	user_id := user.ID
-	entry_id, _ = model.Cron.AddFunc(spec, func() {
-		var err error
-		var o *model.Order
-		if o, err = model.GetOneOrder(model.Db, map[string]interface{}{"order_id": order_id}); err != nil {
-			return
-		}
-		if o.Status != 1 {
-			//开启事务，修改订单状态为过期，并归还用户金币
-			user, _ := model.GetOneUser(model.Db, map[string]interface{}{"id": user_id})
-			conn, _ := model.Db.Begin()
-			if _, err := conn.Exec("update orders set status=2 where order_id=?", order_id); err != nil {
-				fmt.Println(err)
-				conn.Rollback()
-				return
-			}
-			if _, err := conn.Exec("update user set coins=coins+? where id=?", o.Cost, user_id); err != nil {
-				fmt.Println(err)
-				conn.Rollback()
-				return
-			}
-			if _, err := conn.Exec(`insert into transaction_user(action,id,order_id,service_type,coins,credits) 
-	            values(?,?,?,?,?,?)`, 2, user_id, order_id, o.ServiceType, user.Coins+o.Cost, o.Cost); err != nil {
-				fmt.Println(err)
-				conn.Rollback()
-				return
-			}
-			conn.Commit()
-		}
-		model.Cron.Remove(entry_id)
-	})
 	response.SendResponse(c, errmsg.SUCCSE, order)
 }
 
@@ -272,59 +235,31 @@ func OrderUrgent(c *gin.Context) {
 		response.SendResponse(c, errmsg.ERROR_COINS_NOT_ENOUGH)
 		return
 	}
-	//4.更新订单状态、费用并扣除用户金币
+	//4.更新订单状态、加急时间、费用并扣除用户金币
 	order.Status = 3
 	order.Cost += extra_cost
+	order.UrgentTime = time.Now()
 	conn, _ := model.Db.Begin()
-	if _, err := conn.Exec("update orders set status=3,cost=cost+? where order_id=?", extra_cost, order_id); err != nil {
+	if _, err := conn.Exec("update orders set status=3,urgent_time=?,cost=cost+? where order_id=?",
+		order.UrgentTime, extra_cost, order_id); err != nil {
+		fmt.Println(err)
 		conn.Rollback()
 		response.SendResponse(c, errmsg.ERROR_DATABASE)
 		return
 	}
 	if _, err := conn.Exec("update user set coins=coins-? where id=?", extra_cost, user_id); err != nil {
+		fmt.Println(err)
 		conn.Rollback()
 		response.SendResponse(c, errmsg.ERROR_DATABASE)
 		return
 	}
 	if _, err := conn.Exec(`insert into transaction_user(action,id,order_id,service_type,coins,credits) 
-	    values(?,?,?,?,?)`, 3, user.ID, order.OrderID, order.ServiceType, user.Coins-extra_cost, -extra_cost); err != nil {
+	    values(?,?,?,?,?,?)`, 3, user.ID, order.OrderID, order.ServiceType, user.Coins-extra_cost, -extra_cost); err != nil {
+		fmt.Println(err)
 		conn.Rollback()
 		response.SendResponse(c, errmsg.ERROR_DATABASE)
 		return
 	}
 	conn.Commit()
-	//5.开启定时任务，若1小时未回复，则订单变为普通状态，归还用户金币
-	exp_time := time.Now().Add(10 * time.Second)
-	spec := utils.GetCronSpec(exp_time)
-	var entry_id cron.EntryID
-	entry_id, _ = model.Cron.AddFunc(spec, func() {
-		var err error
-		var o *model.Order
-		if o, err = model.GetOneOrder(model.Db, map[string]interface{}{"order_id": order_id}); err != nil {
-			return
-		}
-		if o.Status != 1 {
-			user, _ := model.GetOneUser(model.Db, map[string]interface{}{"id": user_id})
-			//开启事务，修改订单状态及金额，并归还用户金币
-			conn, _ := model.Db.Begin()
-			if _, err := conn.Exec("update orders set status=0,cost=cost-? where order_id=?", extra_cost, order_id); err != nil {
-				fmt.Println(err)
-				conn.Rollback()
-				return
-			}
-			if _, err := conn.Exec("update user set coins=coins+? where id=?", extra_cost, user_id); err != nil {
-				fmt.Println(err)
-				conn.Rollback()
-				return
-			}
-			if _, err := conn.Exec(`insert into transaction_user(action,id,order_id,service_type,credits) 
-	            values(?,?,?,?,?)`, 4, user.ID, order_id, o.ServiceType, user.Coins+extra_cost, extra_cost); err != nil {
-				conn.Rollback()
-				return
-			}
-			conn.Commit()
-		}
-		model.Cron.Remove(entry_id)
-	})
 	response.SendResponse(c, errmsg.SUCCSE, order)
 }

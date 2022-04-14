@@ -3,9 +3,7 @@ package model
 import (
 	"database/sql"
 	"fmt"
-	"log"
 	"net/url"
-	"os"
 	"strconv"
 	"time"
 
@@ -13,24 +11,25 @@ import (
 	"github.com/didi/gendry/scanner"
 	"github.com/garyburd/redigo/redis"
 	_ "github.com/go-sql-driver/mysql"
-	"github.com/robfig/cron/v3"
 )
 
 var Db *sql.DB
-var Cron *cron.Cron
+
+// var Cron *cron.Cron
 var pool *redis.Pool
 var err error
 
 func Init(DbHost string, Dbport string, Dbuser string, Dbpass string, Dbname string, RedisHost string, RedisPort string) {
-	InitCron()
+	// InitCron()
 	InitMysql(DbHost, Dbport, Dbuser, Dbpass, Dbname)
 	InitRedis(RedisHost, RedisPort)
 }
-func InitCron() {
-	Cron = cron.New(cron.WithSeconds(), cron.WithChain(cron.SkipIfStillRunning(cron.DefaultLogger)), cron.WithLogger(
-		cron.VerbosePrintfLogger(log.New(os.Stdout, "cron: ", log.LstdFlags))))
-	Cron.Start()
-}
+
+// func InitCron() {
+// 	Cron = cron.New(cron.WithSeconds(), cron.WithChain(cron.SkipIfStillRunning(cron.DefaultLogger)), cron.WithLogger(
+// 		cron.VerbosePrintfLogger(log.New(os.Stdout, "cron: ", log.LstdFlags))))
+// 	Cron.Start()
+// }
 
 func InitRedis(Host string, Port string) {
 	addresses := Host + ":" + Port

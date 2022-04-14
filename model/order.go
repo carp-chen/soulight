@@ -25,6 +25,7 @@ type Order struct {
 	Status       int8      `json:"status"`
 	ServiceType  int8      `json:"service_type"`
 	OrderTime    time.Time `json:"order_time"`
+	UrgentTime   time.Time `json:"urgent_time"`
 	DeliveryTime time.Time `json:"delivery_time"`
 	Rate         int       `json:"rate"`
 }
