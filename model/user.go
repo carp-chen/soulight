@@ -45,6 +45,12 @@ type AdviserInfoForUser struct {
 	About       string      `json:"about"`
 }
 
+type AdviserInfo struct {
+	Adviser  *Adviser   `json:"adviser"`
+	Services []*Service `json:"services"`
+	Reviews  []*Comment `json:"reviews"`
+}
+
 type AdviserList struct {
 	AdviserName string `json:"adviser_name"`
 	Img         string `json:"img"`

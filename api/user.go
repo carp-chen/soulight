@@ -129,27 +129,17 @@ func AdviserList(c *gin.Context) {
 
 //顾问主页接口
 func AdviserInfoForUser(c *gin.Context) {
-	var adviserinfo model.AdviserInfoForUser
+	var adviserinfo model.AdviserInfo
 	//1.参数绑定
 	adviser_id, _ := strconv.Atoi(c.Query("adviser_id"))
 	//2.查询adviser表
 	where := map[string]interface{}{"id": adviser_id}
-	columns := []string{"adviser_name", "img", "bio", "about"}
-	cond, vals, err := builder.BuildSelect("adviser", where, columns)
-	if nil != err {
-		response.SendResponse(c, errmsg.ERROR)
+	adviser, err := model.GetOneAdviser(model.Db, where)
+	if adviser == nil || err != nil {
+		response.SendResponse(c, errmsg.ERROR_USER_NOT_EXIST)
 		return
 	}
-	row, err := model.Db.Query(cond, vals...)
-	if nil != err || nil == row {
-		response.SendResponse(c, errmsg.ERROR_DATABASE)
-		return
-	}
-	defer row.Close()
-	if err = scanner.Scan(row, &adviserinfo); err != nil {
-		response.SendResponse(c, errmsg.ERROR)
-		return
-	}
+	adviserinfo.Adviser = adviser
 	//3.查询service表
 	where = map[string]interface{}{"adviser_id": adviser_id}
 	var res []*model.Service
@@ -158,6 +148,19 @@ func AdviserInfoForUser(c *gin.Context) {
 		return
 	}
 	adviserinfo.Services = res
+	//4.查询comment表
+	rows, err := model.Db.Query("select * from comment where order_id in(select order_id from orders where adviser_id=?)", adviser.ID)
+	if nil != err || nil == rows {
+		response.SendResponse(c, errmsg.ERROR_DATABASE)
+		return
+	}
+	defer rows.Close()
+	var comments []*model.Comment
+	if err = scanner.Scan(rows, &comments); err != nil {
+		response.SendResponse(c, errmsg.ERROR)
+		return
+	}
+	adviserinfo.Reviews = comments
 	response.SendResponse(c, errmsg.SUCCSE, adviserinfo)
 }
 

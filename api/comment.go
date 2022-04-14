@@ -30,7 +30,7 @@ func OrderReview(c *gin.Context) {
 	}
 	//3.插入评论，修改订单星级
 	conn, _ := model.Db.Begin()
-	if _, err := conn.Exec("insert into comment(order_id,content) values(?,?)", review.OrderID, review.Content); err != nil {
+	if _, err := conn.Exec("insert into comment(order_id,rate,content) values(?,?,?)", review.OrderID, review.Rate, review.Content); err != nil {
 		fmt.Println(err)
 		conn.Rollback()
 		response.SendResponse(c, errmsg.ERROR_DATABASE)
