@@ -43,16 +43,8 @@ type OrderList struct {
 }
 
 type OrderInfo struct {
-	OrderID      string    `json:"order_id"`
-	Status       int8      `json:"status"`
-	ServiceType  int8      `json:"service_type"`
-	OrderTime    time.Time `json:"order_time"`
-	DeliveryTime time.Time `json:"delivery_time"`
-	UserName     string    `json:"username"`
-	Birth        string    `json:"birth"`
-	Gender       string    `json:"gender"`
-	Situation    string    `json:"situation"`
-	Question     string    `json:"question"`
+	Order Order `json:"order"`
+	User  User  `json:"user"`
 }
 
 type OrderReply struct {

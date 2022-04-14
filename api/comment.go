@@ -28,7 +28,7 @@ func OrderReview(c *gin.Context) {
 			return
 		}
 	}
-	//3.插入评论，修改订单星级
+	//3.数据库插入评论，修改订单星级
 	conn, _ := model.Db.Begin()
 	if _, err := conn.Exec("insert into comment(order_id,rate,content) values(?,?,?)", review.OrderID, review.Rate, review.Content); err != nil {
 		fmt.Println(err)
@@ -51,6 +51,9 @@ func OrderReview(c *gin.Context) {
 	}
 	conn.Commit()
 	comment, _ := model.GetOneComment(model.Db, map[string]interface{}{"order_id": review.OrderID})
+	//4.redis缓存评论信息,删除订单详情信息
+	model.RemoveOrderInfoFromRedis(order.OrderID)
+	model.InsertCommentToRedis(order.AdviserID, *comment)
 	response.SendResponse(c, errmsg.SUCCSE, comment)
 }
 

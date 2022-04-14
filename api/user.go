@@ -148,17 +148,24 @@ func AdviserInfoForUser(c *gin.Context) {
 		return
 	}
 	adviserinfo.Services = res
-	//4.查询comment表
-	rows, err := model.Db.Query("select * from comment where order_id in(select order_id from orders where adviser_id=?)", adviser.ID)
-	if nil != err || nil == rows {
-		response.SendResponse(c, errmsg.ERROR_DATABASE)
-		return
-	}
-	defer rows.Close()
+	//4.查询comment表，先读缓存，若缓存不存在再读数据库
 	var comments []*model.Comment
-	if err = scanner.Scan(rows, &comments); err != nil {
-		response.SendResponse(c, errmsg.ERROR)
-		return
+	comments, err = model.GetCommentsFromRedis(adviser_id)
+	if err != nil {
+		rows, err := model.Db.Query("select * from comment where order_id in(select order_id from orders where adviser_id=?)", adviser.ID)
+		if nil != err || nil == rows {
+			response.SendResponse(c, errmsg.ERROR_DATABASE)
+			return
+		}
+		defer rows.Close()
+		if err = scanner.Scan(rows, &comments); err != nil {
+			response.SendResponse(c, errmsg.ERROR)
+			return
+		}
+		//将评论写入缓存
+		for _, comment := range comments {
+			model.InsertCommentToRedis(adviser.ID, *comment)
+		}
 	}
 	adviserinfo.Reviews = comments
 	response.SendResponse(c, errmsg.SUCCSE, adviserinfo)

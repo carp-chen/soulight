@@ -84,6 +84,9 @@ func OrderCreate(c *gin.Context) {
 		return
 	}
 	conn.Commit()
+	//5.将订单详情信息序列化成json并写入redis
+	orderinfo := model.OrderInfo{Order: order, User: *user}
+	model.InsertOrderInfoToRedis(orderinfo)
 	response.SendResponse(c, errmsg.SUCCSE, order)
 }
 
@@ -130,22 +133,39 @@ func OrderList(c *gin.Context) {
 func OrderInfo(c *gin.Context) {
 	//1.绑定参数
 	order_id, _ := c.GetQuery("order_id")
-	//2.查询订单
-	row, err := model.Db.Query(`select o.order_id,o.status,o.service_type,o.order_time,o.delivery_time,u.username,u.birth,u.gender,o.situation,o.question
-	from orders as o left join user as u on o.user_id=u.id 
-	where o.order_id=? `, order_id)
+	//2.首先从redis查询订单
+	orderinfo, err := model.GetOrderInfoFromRedis(order_id)
+	if err == nil {
+		fmt.Println("redis查询成功！")
+		response.SendResponse(c, errmsg.SUCCSE, orderinfo)
+		return
+	}
+	//3.从数据库查询订单
+	var res model.OrderInfo
+	row, err := model.Db.Query(`select * from orders where order_id=? `, order_id)
 	if nil != err || nil == row {
 		response.SendResponse(c, errmsg.ERROR_DATABASE)
 		return
 	}
 	defer row.Close()
-	var res *model.OrderInfo
-	if err = scanner.Scan(row, &res); err != nil {
+	if err = scanner.Scan(row, &res.Order); err != nil {
+		fmt.Println(err)
 		response.SendResponse(c, errmsg.ERROR)
 		return
 	}
+	row, err = model.Db.Query(`select * from user where id=? `, res.Order.UserID)
+	if nil != err || nil == row {
+		response.SendResponse(c, errmsg.ERROR_DATABASE)
+		return
+	}
+	if err = scanner.Scan(row, &res.User); err != nil {
+		fmt.Println(err)
+		response.SendResponse(c, errmsg.ERROR)
+		return
+	}
+	//4.写入redis缓存
+	model.InsertOrderInfoToRedis(res)
 	response.SendResponse(c, errmsg.SUCCSE, res)
-
 }
 
 //回复订单
@@ -211,6 +231,8 @@ func OrderReply(c *gin.Context) {
 		return
 	}
 	conn.Commit()
+	//4.删除redis缓存
+	model.RemoveOrderInfoFromRedis(o.OrderID)
 	response.SendResponse(c, errmsg.SUCCSE, o)
 }
 
@@ -264,5 +286,7 @@ func OrderUrgent(c *gin.Context) {
 		return
 	}
 	conn.Commit()
+	//5.删除redis缓存
+	model.RemoveOrderInfoFromRedis(order.OrderID)
 	response.SendResponse(c, errmsg.SUCCSE, order)
 }

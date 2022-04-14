@@ -16,7 +16,7 @@ import (
 var Db *sql.DB
 
 // var Cron *cron.Cron
-var pool *redis.Pool
+var Pool *redis.Pool
 var err error
 
 func Init(DbHost string, Dbport string, Dbuser string, Dbpass string, Dbname string, RedisHost string, RedisPort string) {
@@ -33,7 +33,7 @@ func Init(DbHost string, Dbport string, Dbuser string, Dbpass string, Dbname str
 
 func InitRedis(Host string, Port string) {
 	addresses := Host + ":" + Port
-	pool = &redis.Pool{ //实例化一个连接池
+	Pool = &redis.Pool{ //实例化一个连接池
 		MaxIdle: 16, //最初的连接数量
 		// MaxActive:1000000,    //最大连接数量
 		MaxActive:   0,   //连接池最大连接数量,不确定可以用0（0表示自动定义），按需分配
@@ -42,7 +42,7 @@ func InitRedis(Host string, Port string) {
 			return redis.Dial("tcp", addresses)
 		},
 	}
-	c := pool.Get() //从连接池，取一个链接
+	c := Pool.Get() //从连接池，取一个链接
 	defer c.Close()
 	_, err := c.Do("ping")
 	if err != nil {
