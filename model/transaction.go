@@ -17,6 +17,7 @@ type Transaction struct {
 	OrderID     string    `json:"order_id"`
 	ServiceType int8      `json:"service_type"`
 	Action      int8      `json:"action"`
+	Coins       int       `json:"coins"`
 	Credits     int       `json:"credits"`
 	CreateTime  time.Time `json:"create_time"`
 }

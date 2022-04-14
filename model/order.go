@@ -29,6 +29,8 @@ type Order struct {
 	Rate         int       `json:"rate"`
 }
 
+//Status：0:pending 1:completed 2:Timeout
+
 type OrderList struct {
 	OrderID     string    `json:"order_id"`
 	Img         string    `json:"img"`

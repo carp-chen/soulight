@@ -178,33 +178,13 @@ func AddFavorite(c *gin.Context) {
 func GetFavorites(c *gin.Context) {
 	//1.参数绑定
 	user_id := c.GetInt("id")
-	//2.首先查询favorite表，获取用户收藏的所有顾问的id
-	rows, err := model.Db.Query("select adviser_id from favorite where user_id=?", user_id)
+	//2.查询数据库，获取用户收藏的所有顾问
+	rows, err := model.Db.Query("select * from adviser where id in(select adviser_id from favorite where user_id=?)", user_id)
 	if nil != err || nil == rows {
 		response.SendResponse(c, errmsg.ERROR_DATABASE)
 		return
 	}
 	defer rows.Close()
-	type ad_id struct {
-		Adviser_id int `json:"adviser_id"`
-	}
-	var ad_id_list []*ad_id
-	if err = scanner.Scan(rows, &ad_id_list); err != nil {
-		response.SendResponse(c, errmsg.ERROR)
-		return
-	}
-	var adviser_id_list []int
-	for _, v := range ad_id_list {
-		adviser_id_list = append(adviser_id_list, v.Adviser_id)
-	}
-	//3.查询adviser表，根据adviser_id_list获取所有顾问的信息
-	where := map[string]interface{}{"id in": adviser_id_list}
-	cond, vals, _ := builder.BuildSelect("adviser", where, nil)
-	rows, err = model.Db.Query(cond, vals...)
-	if nil != err || nil == rows {
-		response.SendResponse(c, errmsg.ERROR_DATABASE)
-		return
-	}
 	var res []*model.Adviser
 	if err = scanner.Scan(rows, &res); err != nil {
 		response.SendResponse(c, errmsg.ERROR)

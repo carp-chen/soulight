@@ -71,8 +71,8 @@ func OrderCreate(c *gin.Context) {
 		response.SendResponse(c, errmsg.ERROR_DATABASE)
 		return
 	}
-	if _, err := conn.Exec(`insert into transaction_user(action,id,order_id,service_type,credits) 
-	    values(?,?,?,?,?)`, 1, user.ID, order.OrderID, order.ServiceType, -order.Cost); err != nil {
+	if _, err := conn.Exec(`insert into transaction_user(action,id,order_id,service_type,coins,credits) 
+	    values(?,?,?,?,?,?)`, 1, user.ID, order.OrderID, order.ServiceType, user.Coins-order.Cost, -order.Cost); err != nil {
 		fmt.Println(err)
 		conn.Rollback()
 		response.SendResponse(c, errmsg.ERROR_DATABASE)
@@ -86,7 +86,7 @@ func OrderCreate(c *gin.Context) {
 	}
 	conn.Commit()
 	//5.开启定时任务，若24小时未回复，则订单过期，金币归还用户
-	exp_time := order.OrderTime.Add(24 * time.Hour)
+	exp_time := order.OrderTime.Add(30 * time.Second)
 	spec := utils.GetCronSpec(exp_time)
 	var entry_id cron.EntryID
 	order_id := order.OrderID
@@ -99,6 +99,7 @@ func OrderCreate(c *gin.Context) {
 		}
 		if o.Status != 1 {
 			//开启事务，修改订单状态为过期，并归还用户金币
+			user, _ := model.GetOneUser(model.Db, map[string]interface{}{"id": user_id})
 			conn, _ := model.Db.Begin()
 			if _, err := conn.Exec("update orders set status=2 where order_id=?", order_id); err != nil {
 				fmt.Println(err)
@@ -110,8 +111,8 @@ func OrderCreate(c *gin.Context) {
 				conn.Rollback()
 				return
 			}
-			if _, err := conn.Exec(`insert into transaction_user(action,id,order_id,service_type,credits) 
-	            values(?,?,?,?,?)`, 2, user_id, order_id, o.ServiceType, o.Cost); err != nil {
+			if _, err := conn.Exec(`insert into transaction_user(action,id,order_id,service_type,coins,credits) 
+	            values(?,?,?,?,?,?)`, 2, user_id, order_id, o.ServiceType, user.Coins+o.Cost, o.Cost); err != nil {
 				fmt.Println(err)
 				conn.Rollback()
 				return
@@ -189,6 +190,8 @@ func OrderReply(c *gin.Context) {
 	var reply model.OrderReply
 	//1.绑定参数
 	adviser_id := c.GetInt("id")
+	ad, _ := c.Get("adviser")
+	adviser, _ := ad.(*model.User)
 	if err := c.ShouldBind(&reply); err != nil {
 		response.SendResponse(c, errmsg.INVALID_PARAMS)
 		return
@@ -229,8 +232,8 @@ func OrderReply(c *gin.Context) {
 		response.SendResponse(c, errmsg.ERROR_DATABASE)
 		return
 	}
-	if _, err := conn.Exec(`insert into transaction_adviser(action,id,order_id,service_type,credits) 
-	    values(?,?,?,?,?)`, action, o.AdviserID, o.OrderID, o.ServiceType, o.Cost); err != nil {
+	if _, err := conn.Exec(`insert into transaction_adviser(action,id,order_id,service_type,coins,credits) 
+	    values(?,?,?,?,?,?)`, action, o.AdviserID, o.OrderID, o.ServiceType, adviser.Coins+o.Cost, o.Cost); err != nil {
 		conn.Rollback()
 		response.SendResponse(c, errmsg.ERROR_DATABASE)
 		return
@@ -283,8 +286,8 @@ func OrderUrgent(c *gin.Context) {
 		response.SendResponse(c, errmsg.ERROR_DATABASE)
 		return
 	}
-	if _, err := conn.Exec(`insert into transaction_user(action,id,order_id,service_type,credits) 
-	    values(?,?,?,?,?)`, 3, user.ID, order.OrderID, order.ServiceType, -extra_cost); err != nil {
+	if _, err := conn.Exec(`insert into transaction_user(action,id,order_id,service_type,coins,credits) 
+	    values(?,?,?,?,?)`, 3, user.ID, order.OrderID, order.ServiceType, user.Coins-extra_cost, -extra_cost); err != nil {
 		conn.Rollback()
 		response.SendResponse(c, errmsg.ERROR_DATABASE)
 		return
@@ -301,6 +304,7 @@ func OrderUrgent(c *gin.Context) {
 			return
 		}
 		if o.Status != 1 {
+			user, _ := model.GetOneUser(model.Db, map[string]interface{}{"id": user_id})
 			//开启事务，修改订单状态及金额，并归还用户金币
 			conn, _ := model.Db.Begin()
 			if _, err := conn.Exec("update orders set status=0,cost=cost-? where order_id=?", extra_cost, order_id); err != nil {
@@ -314,7 +318,7 @@ func OrderUrgent(c *gin.Context) {
 				return
 			}
 			if _, err := conn.Exec(`insert into transaction_user(action,id,order_id,service_type,credits) 
-	            values(?,?,?,?,?)`, 4, user.ID, order_id, o.ServiceType, extra_cost); err != nil {
+	            values(?,?,?,?,?)`, 4, user.ID, order_id, o.ServiceType, user.Coins+extra_cost, extra_cost); err != nil {
 				conn.Rollback()
 				return
 			}
